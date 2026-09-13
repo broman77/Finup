@@ -1,0 +1,10 @@
+<resources>
+    <color name="app_bg">#0E1116</color>
+    <color name="app_surface">#171B22</color>
+    <color name="app_surface_2">#202630</color>
+    <color name="app_text">#F4F6F8</color>
+    <color name="app_muted">#9BA6B2</color>
+    <color name="app_accent">#65D6A6</color>
+    <color name="app_income">#65D6A6</color>
+    <color name="app_expense">#FF7A7A</color>
+</resources>
