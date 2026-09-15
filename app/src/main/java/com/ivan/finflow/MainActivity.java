@@ -17,6 +17,7 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.view.WindowManager;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -86,21 +87,18 @@ public class MainActivity extends Activity {
         db = new DbHelper(this);
         prefs = getSharedPreferences("settings", MODE_PRIVATE);
         applyAppearancePrefs();
-        enableImmersiveFullscreen();
         buildShell();
         showTab(0);
+        // Включаем fullscreen только после того, как окно и интерфейс уже созданы.
+        getWindow().getDecorView().post(this::enableImmersiveFullscreenSafely);
     }
 
-    private void enableImmersiveFullscreen() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            getWindow().setDecorFitsSystemWindows(false);
-            WindowInsetsController controller = getWindow().getInsetsController();
-            if (controller != null) {
-                controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
-                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-            }
-        } else {
-            getWindow().getDecorView().setSystemUiVisibility(
+    private void enableImmersiveFullscreenSafely() {
+        try {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+            View decorView = getWindow().getDecorView();
+            decorView.setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                     | View.SYSTEM_UI_FLAG_FULLSCREEN
                     | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -108,14 +106,32 @@ public class MainActivity extends Activity {
                     | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                     | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
             );
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                WindowInsetsController controller = getWindow().getInsetsController();
+                if (controller != null) {
+                    controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                    controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                }
+            }
+        } catch (Throwable ignored) {
+            // Полноэкранный режим не должен мешать запуску приложения.
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        View decorView = getWindow().getDecorView();
+        if (decorView != null) decorView.post(this::enableImmersiveFullscreenSafely);
     }
 
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
-            enableImmersiveFullscreen();
+            View decorView = getWindow().getDecorView();
+            if (decorView != null) decorView.post(this::enableImmersiveFullscreenSafely);
         }
     }
 
